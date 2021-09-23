@@ -107,7 +107,9 @@ import org.jclouds.io.ContentMetadataBuilder;
 import org.jclouds.io.Payload;
 import org.jclouds.io.Payloads;
 import org.jclouds.rest.AuthorizationException;
+import org.jclouds.s3.blobstore.S3BlobStore;
 import org.jclouds.s3.domain.ObjectMetadata.StorageClass;
+import org.jclouds.s3.options.ConfigBucketOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,7 +148,7 @@ public class S3ProxyHandler {
             "analytics",
             "cors",
             "inventory",
-            "lifecycle",
+//            "lifecycle",
             "logging",
             "metrics",
             "notification",
@@ -155,8 +157,8 @@ public class S3ProxyHandler {
             "restore",
             "tagging",
             "torrent",
-            "versioning",
-            "versions",
+//            "versioning",
+//            "versions",
             "website"
     );
     /** All supported x-amz- headers, except for x-amz-meta- user metadata. */
@@ -685,6 +687,18 @@ public class S3ProxyHandler {
                     handleListMultipartUploads(request, response, blobStore,
                             path[1]);
                     return;
+                }else if ("".equals(request.getParameter("versioning"))) {
+                    handleGetBucketVersioning(response, blobStore,
+                        path[1]);
+                    return;
+                }else if ("".equals(request.getParameter("encryption"))) {
+                    handleGetBucketEncryption(response, blobStore,
+                        path[1]);
+                    return;
+                }else if ("".equals(request.getParameter("lifecycle"))) {
+                    handleGetBucketLifecycle(request, response, blobStore,
+                        path[1]);
+                    return;
                 }
                 handleBlobList(request, response, blobStore, path[1]);
                 return;
@@ -731,6 +745,15 @@ public class S3ProxyHandler {
                 if ("".equals(request.getParameter("acl"))) {
                     handleSetContainerAcl(request, response, is, blobStore,
                             path[1]);
+                    return;
+                }else if ("".equals(request.getParameter("versioning"))){
+                    handleSetBucketVersioning(request, response, is, blobStore, path[1]);
+                    return;
+                }else if ("".equals(request.getParameter("encryption"))){
+                    handleSetBucketEncryption(request, response, is, blobStore, path[1]);
+                    return;
+                }else if ("".equals(request.getParameter("lifecycle"))){
+                    handleSetBucketLifecycle(request, response, is, blobStore, path[1]);
                     return;
                 }
                 handleContainerCreate(request, response, is, blobStore,
@@ -1162,6 +1185,220 @@ public class S3ProxyHandler {
             throw new IOException(xse);
         }
     }
+    private void handleSetBucketVersioning(HttpServletRequest request,
+                                           HttpServletResponse response, InputStream is, BlobStore blobStore,
+                                           String containerName)
+        throws S3Exception {
+
+        String blobStoreType = getBlobStoreType(blobStore);
+        if (!blobStoreType.equalsIgnoreCase("S3")) {
+            throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
+        }
+        String contentLengthString = null;
+        String decodedContentLengthString = null;
+        for (String headerName : Collections.list(request.getHeaderNames())) {
+            String headerValue = Strings.nullToEmpty(request.getHeader(
+                headerName));
+            if (headerName.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH)) {
+                contentLengthString = headerValue;
+            } else if (headerName.equalsIgnoreCase(
+                AwsHttpHeaders.DECODED_CONTENT_LENGTH)) {
+                decodedContentLengthString = headerValue;
+            }
+        }
+        if (decodedContentLengthString != null) {
+            contentLengthString = decodedContentLengthString;
+        }
+
+        if (contentLengthString == null) {
+            throw new S3Exception(S3ErrorCode.MISSING_CONTENT_LENGTH);
+        }
+        long contentLength;
+        try {
+            contentLength = Long.parseLong(contentLengthString);
+        } catch (NumberFormatException nfe) {
+            throw new S3Exception(S3ErrorCode.INVALID_ARGUMENT, nfe);
+        }
+        if (contentLength < 0) {
+            throw new S3Exception(S3ErrorCode.INVALID_ARGUMENT);
+        }
+        if (contentLength > maxSinglePartObjectSize) {
+            throw new S3Exception(S3ErrorCode.ENTITY_TOO_LARGE);
+        }
+
+        BlobBuilder.PayloadBlobBuilder builder = blobStore
+            .blobBuilder(containerName)
+            .payload(is)
+            .contentLength(contentLength);
+        Blob blob = builder.build();
+        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        configBucketOptions.versioning();
+        String respString = ((S3BlobStore)blobStore).putBucketConfiguration(containerName, blob, configBucketOptions);
+        addCorsResponseHeader(request, response);
+    }
+
+    private void handleSetBucketLifecycle(HttpServletRequest request,
+                                          HttpServletResponse response, InputStream is, BlobStore blobStore,
+                                          String containerName)
+        throws S3Exception {
+
+        String blobStoreType = getBlobStoreType(blobStore);
+        if (!blobStoreType.equalsIgnoreCase("S3")) {
+            throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
+        }
+        String contentLengthString = null;
+        String decodedContentLengthString = null;
+        for (String headerName : Collections.list(request.getHeaderNames())) {
+            String headerValue = Strings.nullToEmpty(request.getHeader(
+                headerName));
+            if (headerName.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH)) {
+                contentLengthString = headerValue;
+            } else if (headerName.equalsIgnoreCase(
+                AwsHttpHeaders.DECODED_CONTENT_LENGTH)) {
+                decodedContentLengthString = headerValue;
+            }
+        }
+        if (decodedContentLengthString != null) {
+            contentLengthString = decodedContentLengthString;
+        }
+
+        if (contentLengthString == null) {
+            throw new S3Exception(S3ErrorCode.MISSING_CONTENT_LENGTH);
+        }
+        long contentLength;
+        try {
+            contentLength = Long.parseLong(contentLengthString);
+        } catch (NumberFormatException nfe) {
+            throw new S3Exception(S3ErrorCode.INVALID_ARGUMENT, nfe);
+        }
+        if (contentLength < 0) {
+            throw new S3Exception(S3ErrorCode.INVALID_ARGUMENT);
+        }
+        if (contentLength > maxSinglePartObjectSize) {
+            throw new S3Exception(S3ErrorCode.ENTITY_TOO_LARGE);
+        }
+
+        BlobBuilder.PayloadBlobBuilder builder = blobStore
+            .blobBuilder(containerName)
+            .payload(is)
+            .contentLength(contentLength);
+        Blob blob = builder.build();
+        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        configBucketOptions.lifecycle();
+        String respString = ((S3BlobStore)blobStore).putBucketConfiguration(containerName, blob, configBucketOptions);
+        addCorsResponseHeader(request, response);
+    }
+
+    private void handleSetBucketEncryption(HttpServletRequest request,
+                                           HttpServletResponse response, InputStream is, BlobStore blobStore,
+                                           String containerName)
+        throws S3Exception {
+
+        String blobStoreType = getBlobStoreType(blobStore);
+        if (!blobStoreType.equalsIgnoreCase("S3")) {
+            throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
+        }
+        String contentLengthString = null;
+        String decodedContentLengthString = null;
+        for (String headerName : Collections.list(request.getHeaderNames())) {
+            String headerValue = Strings.nullToEmpty(request.getHeader(
+                headerName));
+            if (headerName.equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH)) {
+                contentLengthString = headerValue;
+            } else if (headerName.equalsIgnoreCase(
+                AwsHttpHeaders.DECODED_CONTENT_LENGTH)) {
+                decodedContentLengthString = headerValue;
+            }
+        }
+        if (decodedContentLengthString != null) {
+            contentLengthString = decodedContentLengthString;
+        }
+
+        if (contentLengthString == null) {
+            throw new S3Exception(S3ErrorCode.MISSING_CONTENT_LENGTH);
+        }
+        long contentLength;
+        try {
+            contentLength = Long.parseLong(contentLengthString);
+        } catch (NumberFormatException nfe) {
+            throw new S3Exception(S3ErrorCode.INVALID_ARGUMENT, nfe);
+        }
+        if (contentLength < 0) {
+            throw new S3Exception(S3ErrorCode.INVALID_ARGUMENT);
+        }
+        if (contentLength > maxSinglePartObjectSize) {
+            throw new S3Exception(S3ErrorCode.ENTITY_TOO_LARGE);
+        }
+
+        BlobBuilder.PayloadBlobBuilder builder = blobStore
+            .blobBuilder(containerName)
+            .payload(is)
+            .contentLength(contentLength);
+        Blob blob = builder.build();
+        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        configBucketOptions.encryption();
+        String respString = ((S3BlobStore)blobStore).putBucketConfiguration(containerName, blob, configBucketOptions);
+        addCorsResponseHeader(request, response);
+    }
+
+    private void handleGetBucketVersioning(HttpServletResponse response,
+                                           BlobStore blobStore, String containerName)
+        throws IOException, S3Exception {
+        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        configBucketOptions.versioning();
+        String blobStoreType = getBlobStoreType(blobStore);
+        if (!blobStoreType.equalsIgnoreCase("S3")) {
+            throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
+        }
+        String respString = ((S3BlobStore)blobStore).getBucketConfiguration(containerName, configBucketOptions);
+        response.setCharacterEncoding(UTF_8);
+        try (Writer writer = response.getWriter()) {
+            response.setContentType(XML_CONTENT_TYPE);
+            writer. write(respString);
+        } catch (Exception xse) {
+            throw new IOException(xse);
+        }
+    }
+
+    private void handleGetBucketLifecycle(HttpServletRequest request, HttpServletResponse response,
+                                          BlobStore blobStore, String containerName)
+        throws IOException, S3Exception {
+
+        String blobStoreType = getBlobStoreType(blobStore);
+        if (!blobStoreType.equalsIgnoreCase("S3")) {
+            throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
+        }
+        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        configBucketOptions.lifecycle();
+        String respString = ((S3BlobStore)blobStore).getBucketConfiguration(containerName, configBucketOptions);
+        response.setCharacterEncoding(UTF_8);
+        try (Writer writer = response.getWriter()) {
+            response.setContentType(XML_CONTENT_TYPE);
+            writer. write(respString);
+        } catch (Exception xse) {
+            throw new IOException(xse);
+        }
+    }
+
+    private void handleGetBucketEncryption(HttpServletResponse response,
+                                           BlobStore blobStore, String containerName)
+        throws IOException, S3Exception {
+        String blobStoreType = getBlobStoreType(blobStore);
+        if (!blobStoreType.equalsIgnoreCase("S3")) {
+            throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
+        }
+        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        configBucketOptions.encryption();
+        String respString = ((S3BlobStore)blobStore).getBucketConfiguration(containerName, configBucketOptions);
+
+        response.setCharacterEncoding(UTF_8);
+        try (Writer writer = response.getWriter()) {
+            response.setContentType(XML_CONTENT_TYPE);
+            writer. write(respString);
+        } catch (Exception xse) {
+            throw new IOException(xse);
+        }
+    }
 
     private static void handleBucketPolicy(BlobStore blobStore,
             String containerName) throws S3Exception {
@@ -1362,6 +1599,10 @@ public class S3ProxyHandler {
         String listType = request.getParameter("list-type");
         String continuationToken = request.getParameter("continuation-token");
         String startAfter = request.getParameter("start-after");
+        boolean versions = request.getParameterMap().containsKey("versions");
+        if (versions) {
+            options.versions();
+        }
         if (listType == null) {
             marker = request.getParameter("marker");
         } else if (listType.equals("2")) {
@@ -1416,7 +1657,7 @@ public class S3ProxyHandler {
             XMLStreamWriter xml = xmlOutputFactory.createXMLStreamWriter(
                     writer);
             xml.writeStartDocument();
-            xml.writeStartElement("ListBucketResult");
+            xml.writeStartElement(versions?"ListVersionsResult" : "ListBucketResult");
             xml.writeDefaultNamespace(AWS_XMLNS);
 
             writeSimpleElement(xml, "Name", containerName);
@@ -1493,7 +1734,7 @@ public class S3ProxyHandler {
                     break;
                 }
 
-                xml.writeStartElement("Contents");
+                xml.writeStartElement(versions?"Version":"Contents");
 
                 writeSimpleElement(xml, "Key", encodeBlob(encodingType,
                         metadata.getName()));
@@ -1509,6 +1750,15 @@ public class S3ProxyHandler {
                     writeSimpleElement(xml, "ETag", maybeQuoteETag(eTag));
                 }
 
+                String versionId = metadata.getVersionId();
+                if (versionId != null) {
+                    writeSimpleElement(xml, "VersionId", versionId);
+                }
+
+                String isLatest = metadata.getIsLatest();
+                if (isLatest != null) {
+                    writeSimpleElement(xml, "IsLatest", isLatest);
+                }
                 writeSimpleElement(xml, "Size",
                         String.valueOf(metadata.getSize()));
                 writeSimpleElement(xml, "StorageClass",
@@ -1728,6 +1978,9 @@ public class S3ProxyHandler {
         if (blob == null) {
             throw new S3Exception(S3ErrorCode.NO_SUCH_KEY);
         }
+
+        String versionId = request.getParameter("versionId");
+        if (null!=versionId) options.versionId(versionId);
 
         response.setStatus(status);
 
@@ -2859,6 +3112,10 @@ public class S3ProxyHandler {
         String eTag = metadata.getETag();
         if (eTag != null) {
             response.addHeader(HttpHeaders.ETAG, maybeQuoteETag(eTag));
+        }
+        String versionId = metadata.getVersionId();
+        if (versionId != null) {
+            response.addHeader("x-amz-version-id", versionId);
         }
         String overrideExpires = request.getParameter("response-expires");
         if (overrideExpires != null) {
