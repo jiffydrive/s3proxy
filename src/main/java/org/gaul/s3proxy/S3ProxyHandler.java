@@ -109,7 +109,7 @@ import org.jclouds.io.Payloads;
 import org.jclouds.rest.AuthorizationException;
 import org.jclouds.s3.blobstore.S3BlobStore;
 import org.jclouds.s3.domain.ObjectMetadata.StorageClass;
-import org.jclouds.s3.options.ConfigBucketOptions;
+import org.jclouds.s3.options.BucketConfigOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1231,7 +1231,7 @@ public class S3ProxyHandler {
             .payload(is)
             .contentLength(contentLength);
         Blob blob = builder.build();
-        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.versioning();
         String respString = ((S3BlobStore)blobStore).putBucketConfiguration(containerName, blob, configBucketOptions);
         addCorsResponseHeader(request, response);
@@ -1283,7 +1283,7 @@ public class S3ProxyHandler {
             .payload(is)
             .contentLength(contentLength);
         Blob blob = builder.build();
-        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.lifecycle();
         String respString = ((S3BlobStore)blobStore).putBucketConfiguration(containerName, blob, configBucketOptions);
         addCorsResponseHeader(request, response);
@@ -1335,7 +1335,7 @@ public class S3ProxyHandler {
             .payload(is)
             .contentLength(contentLength);
         Blob blob = builder.build();
-        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.encryption();
         String respString = ((S3BlobStore)blobStore).putBucketConfiguration(containerName, blob, configBucketOptions);
         addCorsResponseHeader(request, response);
@@ -1344,7 +1344,7 @@ public class S3ProxyHandler {
     private void handleGetBucketVersioning(HttpServletResponse response,
                                            BlobStore blobStore, String containerName)
         throws IOException, S3Exception {
-        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.versioning();
         String blobStoreType = getBlobStoreType(blobStore);
         if (!blobStoreType.equalsIgnoreCase("S3")) {
@@ -1368,7 +1368,7 @@ public class S3ProxyHandler {
         if (!blobStoreType.equalsIgnoreCase("S3")) {
             throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
         }
-        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.lifecycle();
         String respString = ((S3BlobStore)blobStore).getBucketConfiguration(containerName, configBucketOptions);
         response.setCharacterEncoding(UTF_8);
@@ -1387,7 +1387,7 @@ public class S3ProxyHandler {
         if (!blobStoreType.equalsIgnoreCase("S3")) {
             throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
         }
-        ConfigBucketOptions configBucketOptions = new ConfigBucketOptions();
+        BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.encryption();
         String respString = ((S3BlobStore)blobStore).getBucketConfiguration(containerName, configBucketOptions);
 
