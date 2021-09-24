@@ -659,6 +659,16 @@ public class S3ProxyHandler {
         switch (method) {
         case "DELETE":
             if (path.length <= 2 || path[2].isEmpty()) {
+                if ("".equals(request.getParameter("lifecycle"))) {
+                    handleDeleteBucketLifecycle(response, blobStore,
+                        path[1]);
+                    return;
+                }
+                if ("".equals(request.getParameter("encryption"))) {
+                    handleDeleteBucketEncryption(response, blobStore,
+                        path[1]);
+                    return;
+                }
                 handleContainerDelete(response, blobStore, path[1]);
                 return;
             } else if (uploadId != null) {
@@ -1248,6 +1258,7 @@ public class S3ProxyHandler {
         }
         String contentLengthString = null;
         String decodedContentLengthString = null;
+        String contentMD5String = null;
         for (String headerName : Collections.list(request.getHeaderNames())) {
             String headerValue = Strings.nullToEmpty(request.getHeader(
                 headerName));
@@ -1256,10 +1267,25 @@ public class S3ProxyHandler {
             } else if (headerName.equalsIgnoreCase(
                 AwsHttpHeaders.DECODED_CONTENT_LENGTH)) {
                 decodedContentLengthString = headerValue;
+            } else if (headerName.equalsIgnoreCase(HttpHeaders.CONTENT_MD5)) {
+                contentMD5String = headerValue;
             }
         }
         if (decodedContentLengthString != null) {
             contentLengthString = decodedContentLengthString;
+        }
+
+        HashCode contentMD5 = null;
+        if (contentMD5String != null) {
+            try {
+                contentMD5 = HashCode.fromBytes(
+                    Base64.getDecoder().decode(contentMD5String));
+            } catch (IllegalArgumentException iae) {
+                throw new S3Exception(S3ErrorCode.INVALID_DIGEST, iae);
+            }
+            if (contentMD5.bits() != MD5.bits()) {
+                throw new S3Exception(S3ErrorCode.INVALID_DIGEST);
+            }
         }
 
         if (contentLengthString == null) {
@@ -1282,6 +1308,9 @@ public class S3ProxyHandler {
             .blobBuilder(containerName)
             .payload(is)
             .contentLength(contentLength);
+        if (contentMD5 != null) {
+            builder = builder.contentMD5(contentMD5);
+        }
         Blob blob = builder.build();
         BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.lifecycle();
@@ -1391,6 +1420,50 @@ public class S3ProxyHandler {
         configBucketOptions.encryption();
         String respString = ((S3BlobStore)blobStore).getBucketConfiguration(containerName, configBucketOptions);
 
+        response.setCharacterEncoding(UTF_8);
+        try (Writer writer = response.getWriter()) {
+            response.setContentType(XML_CONTENT_TYPE);
+            writer. write(respString);
+        } catch (Exception xse) {
+            throw new IOException(xse);
+        }
+    }
+
+    private static void handleDeleteBucketLifecycle(HttpServletResponse response,
+                                              BlobStore blobStore, String containerName)
+        throws IOException, S3Exception {
+        if (!blobStore.containerExists(containerName)) {
+            throw new S3Exception(S3ErrorCode.NO_SUCH_BUCKET);
+        }
+        String blobStoreType = getBlobStoreType(blobStore);
+        if (!blobStoreType.equalsIgnoreCase("S3")) {
+            throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
+        }
+        BucketConfigOptions configBucketOptions = new BucketConfigOptions();
+        configBucketOptions.lifecycle();
+        String respString = ((S3BlobStore)blobStore).deleteBucketConfiguration(containerName, configBucketOptions);
+        response.setCharacterEncoding(UTF_8);
+        try (Writer writer = response.getWriter()) {
+            response.setContentType(XML_CONTENT_TYPE);
+            writer. write(respString);
+        } catch (Exception xse) {
+            throw new IOException(xse);
+        }
+    }
+
+    private static void handleDeleteBucketEncryption(HttpServletResponse response,
+                                                    BlobStore blobStore, String containerName)
+        throws IOException, S3Exception {
+        if (!blobStore.containerExists(containerName)) {
+            throw new S3Exception(S3ErrorCode.NO_SUCH_BUCKET);
+        }
+        String blobStoreType = getBlobStoreType(blobStore);
+        if (!blobStoreType.equalsIgnoreCase("S3")) {
+            throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
+        }
+        BucketConfigOptions configBucketOptions = new BucketConfigOptions();
+        configBucketOptions.encryption();
+        String respString = ((S3BlobStore)blobStore).deleteBucketConfiguration(containerName, configBucketOptions);
         response.setCharacterEncoding(UTF_8);
         try (Writer writer = response.getWriter()) {
             response.setContentType(XML_CONTENT_TYPE);
