@@ -697,16 +697,16 @@ public class S3ProxyHandler {
                     handleListMultipartUploads(request, response, blobStore,
                             path[1]);
                     return;
-                }else if ("".equals(request.getParameter("versioning"))) {
+                } else if ("".equals(request.getParameter("versioning"))) {
                     handleGetBucketVersioning(response, blobStore,
                         path[1]);
                     return;
-                }else if ("".equals(request.getParameter("encryption"))) {
+                } else if ("".equals(request.getParameter("encryption"))) {
                     handleGetBucketEncryption(response, blobStore,
                         path[1]);
                     return;
-                }else if ("".equals(request.getParameter("lifecycle"))) {
-                    handleGetBucketLifecycle(request, response, blobStore,
+                } else if ("".equals(request.getParameter("lifecycle"))) {
+                    handleGetBucketLifecycle(response, blobStore,
                         path[1]);
                     return;
                 }
@@ -756,14 +756,17 @@ public class S3ProxyHandler {
                     handleSetContainerAcl(request, response, is, blobStore,
                             path[1]);
                     return;
-                }else if ("".equals(request.getParameter("versioning"))){
-                    handleSetBucketVersioning(request, response, is, blobStore, path[1]);
+                } else if ("".equals(request.getParameter("versioning"))) {
+                    handleSetBucketVersioning(request, response, is,
+                            blobStore, path[1]);
                     return;
-                }else if ("".equals(request.getParameter("encryption"))){
-                    handleSetBucketEncryption(request, response, is, blobStore, path[1]);
+                } else if ("".equals(request.getParameter("encryption"))) {
+                    handleSetBucketEncryption(request, response, is,
+                            blobStore, path[1]);
                     return;
-                }else if ("".equals(request.getParameter("lifecycle"))){
-                    handleSetBucketLifecycle(request, response, is, blobStore, path[1]);
+                } else if ("".equals(request.getParameter("lifecycle"))) {
+                    handleSetBucketLifecycle(request, response, is,
+                            blobStore, path[1]);
                     return;
                 }
                 handleContainerCreate(request, response, is, blobStore,
@@ -1195,10 +1198,13 @@ public class S3ProxyHandler {
             throw new IOException(xse);
         }
     }
+
     private void handleSetBucketVersioning(HttpServletRequest request,
-                                           HttpServletResponse response, InputStream is, BlobStore blobStore,
+                                           HttpServletResponse response,
+                                           InputStream is,
+                                           BlobStore blobStore,
                                            String containerName)
-        throws S3Exception {
+            throws S3Exception {
 
         String blobStoreType = getBlobStoreType(blobStore);
         if (!blobStoreType.equalsIgnoreCase("S3")) {
@@ -1243,12 +1249,15 @@ public class S3ProxyHandler {
         Blob blob = builder.build();
         BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.versioning();
-        String respString = ((S3BlobStore)blobStore).putBucketConfiguration(containerName, blob, configBucketOptions);
+        ((S3BlobStore) blobStore).putBucketConfiguration(
+                containerName, blob, configBucketOptions);
         addCorsResponseHeader(request, response);
     }
 
     private void handleSetBucketLifecycle(HttpServletRequest request,
-                                          HttpServletResponse response, InputStream is, BlobStore blobStore,
+                                          HttpServletResponse response,
+                                          InputStream is,
+                                          BlobStore blobStore,
                                           String containerName)
         throws S3Exception {
 
@@ -1314,12 +1323,15 @@ public class S3ProxyHandler {
         Blob blob = builder.build();
         BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.lifecycle();
-        String respString = ((S3BlobStore)blobStore).putBucketConfiguration(containerName, blob, configBucketOptions);
+        ((S3BlobStore) blobStore).putBucketConfiguration(
+                containerName, blob, configBucketOptions);
         addCorsResponseHeader(request, response);
     }
 
     private void handleSetBucketEncryption(HttpServletRequest request,
-                                           HttpServletResponse response, InputStream is, BlobStore blobStore,
+                                           HttpServletResponse response,
+                                           InputStream is,
+                                           BlobStore blobStore,
                                            String containerName)
         throws S3Exception {
 
@@ -1366,12 +1378,14 @@ public class S3ProxyHandler {
         Blob blob = builder.build();
         BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.encryption();
-        String respString = ((S3BlobStore)blobStore).putBucketConfiguration(containerName, blob, configBucketOptions);
+        ((S3BlobStore) blobStore).putBucketConfiguration(
+                        containerName, blob, configBucketOptions);
         addCorsResponseHeader(request, response);
     }
 
     private void handleGetBucketVersioning(HttpServletResponse response,
-                                           BlobStore blobStore, String containerName)
+                                           BlobStore blobStore,
+                                           String containerName)
         throws IOException, S3Exception {
         BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.versioning();
@@ -1379,18 +1393,20 @@ public class S3ProxyHandler {
         if (!blobStoreType.equalsIgnoreCase("S3")) {
             throw new S3Exception(S3ErrorCode.NOT_IMPLEMENTED);
         }
-        String respString = ((S3BlobStore)blobStore).getBucketConfiguration(containerName, configBucketOptions);
+        String respString = ((S3BlobStore) blobStore)
+                .getBucketConfiguration(containerName, configBucketOptions);
         response.setCharacterEncoding(UTF_8);
         try (Writer writer = response.getWriter()) {
             response.setContentType(XML_CONTENT_TYPE);
-            writer. write(respString);
+            writer.write(respString);
         } catch (Exception xse) {
             throw new IOException(xse);
         }
     }
 
-    private void handleGetBucketLifecycle(HttpServletRequest request, HttpServletResponse response,
-                                          BlobStore blobStore, String containerName)
+    private void handleGetBucketLifecycle(HttpServletResponse response,
+                                          BlobStore blobStore,
+                                          String containerName)
         throws IOException, S3Exception {
 
         String blobStoreType = getBlobStoreType(blobStore);
@@ -1399,18 +1415,20 @@ public class S3ProxyHandler {
         }
         BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.lifecycle();
-        String respString = ((S3BlobStore)blobStore).getBucketConfiguration(containerName, configBucketOptions);
+        String respString = ((S3BlobStore) blobStore)
+                .getBucketConfiguration(containerName, configBucketOptions);
         response.setCharacterEncoding(UTF_8);
         try (Writer writer = response.getWriter()) {
             response.setContentType(XML_CONTENT_TYPE);
-            writer. write(respString);
+            writer.write(respString);
         } catch (Exception xse) {
             throw new IOException(xse);
         }
     }
 
     private void handleGetBucketEncryption(HttpServletResponse response,
-                                           BlobStore blobStore, String containerName)
+                                           BlobStore blobStore,
+                                           String containerName)
         throws IOException, S3Exception {
         String blobStoreType = getBlobStoreType(blobStore);
         if (!blobStoreType.equalsIgnoreCase("S3")) {
@@ -1418,19 +1436,22 @@ public class S3ProxyHandler {
         }
         BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.encryption();
-        String respString = ((S3BlobStore)blobStore).getBucketConfiguration(containerName, configBucketOptions);
+        String respString = ((S3BlobStore) blobStore)
+                .getBucketConfiguration(containerName, configBucketOptions);
 
         response.setCharacterEncoding(UTF_8);
         try (Writer writer = response.getWriter()) {
             response.setContentType(XML_CONTENT_TYPE);
-            writer. write(respString);
+            writer.write(respString);
         } catch (Exception xse) {
             throw new IOException(xse);
         }
     }
 
-    private static void handleDeleteBucketLifecycle(HttpServletResponse response,
-                                              BlobStore blobStore, String containerName)
+    private static void handleDeleteBucketLifecycle(
+            HttpServletResponse response,
+            BlobStore blobStore,
+            String containerName)
         throws IOException, S3Exception {
         if (!blobStore.containerExists(containerName)) {
             throw new S3Exception(S3ErrorCode.NO_SUCH_BUCKET);
@@ -1441,18 +1462,21 @@ public class S3ProxyHandler {
         }
         BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.lifecycle();
-        String respString = ((S3BlobStore)blobStore).deleteBucketConfiguration(containerName, configBucketOptions);
+        String respString = ((S3BlobStore) blobStore)
+                .deleteBucketConfiguration(containerName, configBucketOptions);
         response.setCharacterEncoding(UTF_8);
         try (Writer writer = response.getWriter()) {
             response.setContentType(XML_CONTENT_TYPE);
-            writer. write(respString);
+            writer.write(respString);
         } catch (Exception xse) {
             throw new IOException(xse);
         }
     }
 
-    private static void handleDeleteBucketEncryption(HttpServletResponse response,
-                                                    BlobStore blobStore, String containerName)
+    private static void handleDeleteBucketEncryption(
+            HttpServletResponse response,
+            BlobStore blobStore,
+            String containerName)
         throws IOException, S3Exception {
         if (!blobStore.containerExists(containerName)) {
             throw new S3Exception(S3ErrorCode.NO_SUCH_BUCKET);
@@ -1463,11 +1487,12 @@ public class S3ProxyHandler {
         }
         BucketConfigOptions configBucketOptions = new BucketConfigOptions();
         configBucketOptions.encryption();
-        String respString = ((S3BlobStore)blobStore).deleteBucketConfiguration(containerName, configBucketOptions);
+        String respString = ((S3BlobStore) blobStore)
+                .deleteBucketConfiguration(containerName, configBucketOptions);
         response.setCharacterEncoding(UTF_8);
         try (Writer writer = response.getWriter()) {
             response.setContentType(XML_CONTENT_TYPE);
-            writer. write(respString);
+            writer.write(respString);
         } catch (Exception xse) {
             throw new IOException(xse);
         }
@@ -1730,7 +1755,9 @@ public class S3ProxyHandler {
             XMLStreamWriter xml = xmlOutputFactory.createXMLStreamWriter(
                     writer);
             xml.writeStartDocument();
-            xml.writeStartElement(versions?"ListVersionsResult" : "ListBucketResult");
+            xml.writeStartElement(versions ?
+                    "ListVersionsResult" :
+                    "ListBucketResult");
             xml.writeDefaultNamespace(AWS_XMLNS);
 
             writeSimpleElement(xml, "Name", containerName);
@@ -1807,7 +1834,7 @@ public class S3ProxyHandler {
                     break;
                 }
 
-                xml.writeStartElement(versions?"Version":"Contents");
+                xml.writeStartElement(versions ? "Version" : "Contents");
 
                 writeSimpleElement(xml, "Key", encodeBlob(encodingType,
                         metadata.getName()));
@@ -2053,7 +2080,9 @@ public class S3ProxyHandler {
         }
 
         String versionId = request.getParameter("versionId");
-        if (null!=versionId) options.versionId(versionId);
+        if (null != versionId) {
+            options.versionId(versionId);
+        }
 
         response.setStatus(status);
 
