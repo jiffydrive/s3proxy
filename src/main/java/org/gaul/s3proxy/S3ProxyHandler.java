@@ -574,7 +574,15 @@ public class S3ProxyHandler {
                         payload = new byte[0];
                         is = new ChunkedInputStream(is);
                     } else if ("UNSIGNED-PAYLOAD".equals(contentSha256)) {
-                        payload = new byte[0];
+                        // AWS SDK sends unsigned payload when using https
+                        // s3 endpoints
+                        payload = ByteStreams.toByteArray(ByteStreams.limit(
+                                is, v4MaxNonChunkedRequestSize + 1));
+                        if (payload.length == v4MaxNonChunkedRequestSize + 1) {
+                            throw new S3Exception(
+                                    S3ErrorCode.MAX_MESSAGE_LENGTH_EXCEEDED);
+                        }
+                        is = new ByteArrayInputStream(payload);
                     } else {
                         // buffer the entire stream to calculate digest
                         // why input stream read contentlength of header?
