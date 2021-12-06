@@ -141,7 +141,7 @@ public final class Main {
                     String localIdentity = properties.getProperty(
                         S3ProxyConstants.PROPERTY_IDENTITY);
                     locators.put(localIdentity, Maps.immutableEntry(
-                        "", blobStore));
+                            localIdentity, blobStore));
                     identityCommMap.put(localIdentity, commConfig);
                 }
             }
