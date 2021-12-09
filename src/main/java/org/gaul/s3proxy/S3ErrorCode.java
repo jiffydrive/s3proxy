@@ -75,6 +75,8 @@ enum S3ErrorCode {
             "Length Required"),
     NO_SUCH_BUCKET(HttpServletResponse.SC_NOT_FOUND,
             "The specified bucket does not exist"),
+    NO_SUCH_CONFIGURATION(HttpServletResponse.SC_NOT_FOUND,
+            "The specified configuration does not exist"),
     NO_SUCH_KEY(HttpServletResponse.SC_NOT_FOUND,
             "The specified key does not exist."),
     NO_SUCH_POLICY(HttpServletResponse.SC_NOT_FOUND,
