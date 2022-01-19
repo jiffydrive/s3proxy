@@ -37,6 +37,7 @@ final class AwsHttpHeaders {
     static final String SERVER_SIDE_ENCRYPTION = "x-amz-server-side-encryption";
     static final String SERVER_SIDE_ENCRYPTION_KEY =
             "x-amz-server-side-encryption-aws-kms-key-id";
+    static final String CONTENT_RANGE = "x-amz-te";
 
     private AwsHttpHeaders() {
         throw new AssertionError("intentionally unimplemented");
