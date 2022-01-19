@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.jclouds.blobstore.BlobStore;
+import org.jclouds.blobstore.ConfigurationNotFoundException;
 import org.jclouds.blobstore.ContainerNotFoundException;
 import org.jclouds.blobstore.KeyNotFoundException;
 import org.jclouds.http.HttpResponse;
@@ -60,6 +61,7 @@ final class S3ProxyHandlerJetty extends AbstractHandler {
     private void sendS3Exception(HttpServletRequest request,
             HttpServletResponse response, S3Exception se)
             throws IOException {
+        logger.error(se.getMessage());
         handler.sendSimpleErrorResponse(request, response,
                 se.getError(), se.getMessage(), se.getElements());
     }
@@ -78,6 +80,14 @@ final class S3ProxyHandlerJetty extends AbstractHandler {
             baseRequest.setHandled(true);
         } catch (ContainerNotFoundException cnfe) {
             S3ErrorCode code = S3ErrorCode.NO_SUCH_BUCKET;
+            logger.error(cnfe.getMessage());
+            handler.sendSimpleErrorResponse(request, response, code,
+                    code.getMessage(), ImmutableMap.<String, String>of());
+            baseRequest.setHandled(true);
+            return;
+        } catch (ConfigurationNotFoundException cnfe) {
+            S3ErrorCode code = S3ErrorCode.NO_SUCH_CONFIGURATION;
+            logger.error(cnfe.getMessage());
             handler.sendSimpleErrorResponse(request, response, code,
                     code.getMessage(), ImmutableMap.<String, String>of());
             baseRequest.setHandled(true);
